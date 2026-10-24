@@ -1,0 +1,16 @@
+[project]
+name = "llm-pipeline"
+version = "0.1.0"
+description = "LLM-пайплайн: summary, key points, классификация, routing, multi-step chain"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["B", "UP", "I"]
+ignore = ["TRY004"]
