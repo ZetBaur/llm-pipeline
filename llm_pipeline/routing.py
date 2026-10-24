@@ -20,7 +20,8 @@ ROUTES: dict[str, Route] = {
     "complaint": Route(
         "complaint",
         "Careful and empathic. Start with a sincere apology that names the concrete problem, "
-        "do not make excuses, say what happens next (the case is escalated). No sales language.",
+        "do not make excuses, say only that the case is passed on for review. Do not promise a result, "
+        "a refund or a time (not even \"today\"). No sales language.",
         50,
     ),
     "sales": Route(
