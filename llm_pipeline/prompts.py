@@ -56,3 +56,29 @@ JSON_SYSTEM = (
     "Write summary, key_points and final_answer in the same language as the message. "
     "Never invent facts that are not in the message."
 )
+
+
+CLASSIFY_SYSTEM = (
+    "You classify customer messages. Return ONE JSON object with exactly these fields:\n"
+    '- "category": one of "support" (technical problem, something does not work), '
+    '"feedback" (opinion, thanks, suggestion), "complaint" (dissatisfaction, demand, threat to '
+    'leave), "sales" (price, plans, demo, purchase), "general_question" (information about the '
+    "company or product that is not a purchase or a failure)\n"
+    '- "intent": a short phrase in English, at most 8 words, what the customer wants\n'
+    '- "sentiment": one of "positive", "neutral", "negative"\n'
+    "If a message fits several categories, choose the one that needs the most urgent action."
+)
+
+NO_INVENTION_RULE = (
+    "Use only facts from the customer's message. Never state hours, prices, addresses, "
+    "deadlines or policies that are not in the message; if the customer asks for them, say that "
+    "you will check and get back."
+)
+
+RESPOND_SYSTEM = (
+    "You write the reply of a customer-support team to a customer. Write in the same language "
+    "as the customer's message. {rule}\n"
+    "Reply style for this message (category: {category}, the customer wants: {intent}):\n"
+    "{instruction}\n"
+    "Length: at most {max_words} words in total. Return only the text of the reply."
+)

@@ -5,11 +5,20 @@ from pydantic import ValidationError
 from llm_pipeline.llm_client import ChatClient
 from llm_pipeline.prompts import (
     BEST_PLAIN_VARIANT,
+    CLASSIFY_SYSTEM,
     JSON_SYSTEM,
+    NO_INVENTION_RULE,
     PLAIN_VARIANTS,
+    RESPOND_SYSTEM,
     build_user_prompt,
 )
-from llm_pipeline.schemas import Analysis, OutputValidationError, describe_errors
+from llm_pipeline.routing import get_route
+from llm_pipeline.schemas import (
+    Analysis,
+    Classification,
+    OutputValidationError,
+    describe_errors,
+)
 from llm_pipeline.utils import extract_json, parse_plain_output
 
 logger = logging.getLogger(__name__)
@@ -56,3 +65,41 @@ def analyze_json(text: str, client: ChatClient) -> Analysis:
     analysis = validate_analysis(completion.text)
     logger.info("json: valid, category=%s sentiment=%s", analysis.category, analysis.sentiment)
     return analysis
+
+
+def classify(text: str, client: ChatClient) -> Classification:
+    if not text or not text.strip():
+        raise ValueError("Input text is empty")
+    completion = client.complete(CLASSIFY_SYSTEM, build_user_prompt(text), json_mode=True, max_tokens=150)
+    try:
+        data = extract_json(completion.text)
+        result = Classification.model_validate(data)
+    except ValueError as exc:
+        if isinstance(exc, ValidationError):
+            raise OutputValidationError(describe_errors(exc), raw=completion.text) from exc
+        raise OutputValidationError([str(exc)], raw=completion.text) from exc
+    logger.info("classify: category=%s intent=%r sentiment=%s", result.category, result.intent, result.sentiment)
+    return result
+
+
+def respond(text: str, classification: Classification, client: ChatClient) -> str:
+    route = get_route(classification.category)
+    system = RESPOND_SYSTEM.format(
+        rule=NO_INVENTION_RULE,
+        category=classification.category,
+        intent=classification.intent,
+        instruction=route.instruction,
+        max_words=route.max_words,
+    )
+    completion = client.complete(system, build_user_prompt(text), temperature=0.0, max_tokens=300)
+    answer = completion.text.strip()
+    if not answer:
+        raise OutputValidationError(["final_answer: model returned an empty reply"], raw="")
+    logger.info("respond[%s]: %d words", route.category, len(answer.split()))
+    return answer
+
+
+def run_routed(text: str, client: ChatClient) -> dict:
+    classification = classify(text, client)
+    answer = respond(text, classification, client)
+    return {**classification.model_dump(), "final_answer": answer}

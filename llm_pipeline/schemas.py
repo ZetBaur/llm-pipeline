@@ -41,3 +41,11 @@ def describe_errors(error: ValidationError) -> list[str]:
         else:
             problems.append(f"{where}: {item['msg']}")
     return problems
+
+
+class Classification(BaseModel):
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+    category: Category
+    intent: str = Field(min_length=1, max_length=120)
+    sentiment: Sentiment
