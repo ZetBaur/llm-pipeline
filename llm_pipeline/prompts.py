@@ -82,3 +82,44 @@ RESPOND_SYSTEM = (
     "{instruction}\n"
     "Length: at most {max_words} words in total. Return only the text of the reply."
 )
+
+
+EXTRACT_SYSTEM = (
+    "You extract the meaning of a customer's message. Return ONE JSON object with exactly:\n"
+    '- "summary": string, one sentence, at most 25 words\n'
+    '- "key_points": array of exactly 3 short strings (at most 12 words each)\n'
+    '- "customer_requests": array of 1 to 5 strings, everything the customer asks or demands, '
+    "each as a short phrase (include every concrete detail such as order numbers, amounts, "
+    "device models)\n"
+    '- "language": the language of the message in English, for example "Russian"\n'
+    "Use only what is in the message."
+)
+
+SELF_CHECK_SYSTEM = (
+    "You are a reviewer of customer-support replies. You get the customer's message and a "
+    "draft reply. Return ONE JSON object with exactly:\n"
+    '- "unsupported_claims": array of strings. Each is a concrete statement in the reply that is '
+    "NOT in the message and is presented as a fact or a decision: prices, hours, deadlines, "
+    "policies, statements that something is possible or impossible, guarantees, technical causes. "
+    "These are NOT unsupported claims: polite phrases; promises to check, escalate or get back; "
+    "offering the very thing the customer asked for (a demo, a quote, a callback); generic "
+    "troubleshooting steps.\n"
+    '- "missed_details": array of strings. Each is an explicit question, request or demand of the '
+    "customer that the reply does not address in any way. A reply addresses a request if it "
+    "acknowledges it, even when it only promises to check or to get back. NOT restating details "
+    "(device model, order number, error text, amounts) is NOT a problem, unless the reply gets "
+    "the detail wrong.\n"
+    '- "contradicts_message": true only if the reply says the opposite of the message or '
+    "misstates it, otherwise false.\n"
+    "Empty arrays and false when the reply is acceptable. Do not judge style, length or tone."
+)
+
+REVISE_SUFFIX = (
+    "\nA reviewer found problems in your previous draft. Write a corrected reply that fixes ALL of "
+    "them and keeps the style and length limit above.\nProblems:\n{issues}\nPrevious draft:\n{draft}"
+)
+
+CHAIN_CONTEXT = (
+    "Structured analysis of the message (use it, do not repeat it):\n"
+    "- summary: {summary}\n- customer requests: {requests}\n- key points: {points}"
+)
