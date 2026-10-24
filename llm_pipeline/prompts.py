@@ -43,3 +43,16 @@ USER_TEMPLATE = "Customer message:\n\"\"\"\n{text}\n\"\"\""
 
 def build_user_prompt(text: str) -> str:
     return USER_TEMPLATE.format(text=text.strip())
+
+
+JSON_SYSTEM = (
+    "You are an assistant of a customer-support team. Analyse the customer's message and "
+    "return ONE JSON object and nothing else, with exactly these fields:\n"
+    '- "summary": string, one sentence, at most 25 words\n'
+    '- "category": one of "support", "feedback", "complaint", "sales", "general_question"\n'
+    '- "sentiment": one of "positive", "neutral", "negative"\n'
+    '- "key_points": array of exactly 3 strings, each at most 12 words\n'
+    '- "final_answer": string, a polite reply to the customer of at most 40 words\n'
+    "Write summary, key_points and final_answer in the same language as the message. "
+    "Never invent facts that are not in the message."
+)
