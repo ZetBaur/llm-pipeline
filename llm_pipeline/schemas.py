@@ -103,4 +103,14 @@ class ChainResult(Analysis):
     self_check_passed: bool
     revised: bool
     issues_found: list[str] = Field(default_factory=list)
+    remaining_issues: list[str] = Field(default_factory=list)
+    blocking_issues: bool = False
     steps: list[StepRecord] = Field(default_factory=list)
+
+
+class Outcome(BaseModel):
+    status: Literal["ok", "degraded", "failed"]
+    final_answer: str
+    result: ChainResult | None = None
+    error: str = ""
+    warnings: list[str] = Field(default_factory=list)

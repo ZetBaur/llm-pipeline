@@ -70,7 +70,7 @@ def test_revision_that_still_fails_is_reported(fake_client) -> None:
 
 
 def test_bad_extract_output_stops_the_chain(fake_client) -> None:
-    fake_client.responses = ["not json"]
+    fake_client.responses = ["not json", "still not json"]
 
     with pytest.raises(OutputValidationError):
         run_chain("hello", fake_client)
@@ -90,7 +90,7 @@ def test_self_check_properties() -> None:
 
 
 def test_self_check_step_rejects_garbage(fake_client) -> None:
-    fake_client.responses = ["looks fine to me"]
+    fake_client.responses = ["looks fine to me", "really, fine"]
 
     with pytest.raises(OutputValidationError):
         self_check_step("text", "answer", fake_client)

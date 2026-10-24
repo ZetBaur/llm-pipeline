@@ -1,8 +1,7 @@
 import logging
 import time
 
-from pydantic import ValidationError
-
+from llm_pipeline.guardrails import limit_reply
 from llm_pipeline.llm_client import ChatClient, Completion
 from llm_pipeline.pipeline import classify
 from llm_pipeline.prompts import (
@@ -14,6 +13,7 @@ from llm_pipeline.prompts import (
     SELF_CHECK_SYSTEM,
     build_user_prompt,
 )
+from llm_pipeline.reliability import llm_json
 from llm_pipeline.routing import get_route
 from llm_pipeline.schemas import (
     ChainResult,
@@ -22,21 +22,10 @@ from llm_pipeline.schemas import (
     OutputValidationError,
     SelfCheck,
     StepRecord,
-    describe_errors,
 )
-from llm_pipeline.utils import extract_json
 
 logger = logging.getLogger(__name__)
 TOTAL_STEPS = 5
-
-
-def _parse(model_cls, completion: Completion):
-    try:
-        return model_cls.model_validate(extract_json(completion.text))
-    except ValidationError as exc:
-        raise OutputValidationError(describe_errors(exc), raw=completion.text) from exc
-    except ValueError as exc:
-        raise OutputValidationError([str(exc)], raw=completion.text) from exc
 
 
 def _record(name: str, completion: Completion | None, started: float, note: str = "") -> StepRecord:
@@ -50,8 +39,7 @@ def _record(name: str, completion: Completion | None, started: float, note: str 
 
 
 def extract_step(text: str, client: ChatClient) -> tuple[ExtractResult, Completion]:
-    completion = client.complete(EXTRACT_SYSTEM, build_user_prompt(text), json_mode=True, max_tokens=400)
-    return _parse(ExtractResult, completion), completion
+    return llm_json(client, EXTRACT_SYSTEM, build_user_prompt(text), ExtractResult, max_tokens=400)
 
 
 def build_context(extract: ExtractResult) -> str:
@@ -90,8 +78,7 @@ def respond_step(
 
 def self_check_step(text: str, answer: str, client: ChatClient) -> tuple[SelfCheck, Completion]:
     user = f"Customer message:\n\"\"\"\n{text.strip()}\n\"\"\"\n\nDraft reply:\n\"\"\"\n{answer}\n\"\"\""
-    completion = client.complete(SELF_CHECK_SYSTEM, user, json_mode=True, max_tokens=400)
-    return _parse(SelfCheck, completion), completion
+    return llm_json(client, SELF_CHECK_SYSTEM, user, SelfCheck, max_tokens=400)
 
 
 def run_chain(text: str, client: ChatClient) -> ChainResult:
@@ -121,7 +108,8 @@ def run_chain(text: str, client: ChatClient) -> ChainResult:
 
     started = time.time()
     answer, completion = respond_step(text, classification, extract, client)
-    steps.append(_record("respond", completion, started, f"{len(answer.split())} words"))
+    answer, clipped = limit_reply(answer, get_route(classification.category).max_words)
+    steps.append(_record("respond", completion, started, f"{len(answer.split())} words" + (", clipped" if clipped else "")))
     logger.info("step 4/%d respond[%s]: %d words", TOTAL_STEPS, classification.category, len(answer.split()))
 
     started = time.time()
@@ -134,6 +122,7 @@ def run_chain(text: str, client: ChatClient) -> ChainResult:
     if not check.ok:
         started = time.time()
         answer, completion = respond_step(text, classification, extract, client, issues_found, answer)
+        answer, _ = limit_reply(answer, get_route(classification.category).max_words)
         steps.append(_record("revise", completion, started, f"{len(answer.split())} words"))
         check, completion = self_check_step(text, answer, client)
         steps.append(_record("self_check_2", completion, started, "ok" if check.ok else "still issues"))
@@ -149,5 +138,7 @@ def run_chain(text: str, client: ChatClient) -> ChainResult:
         self_check_passed=check.ok,
         revised=revised,
         issues_found=issues_found,
+        remaining_issues=[] if check.ok else check.issues(),
+        blocking_issues=bool(check.unsupported_claims or check.contradicts_message),
         steps=steps,
     )

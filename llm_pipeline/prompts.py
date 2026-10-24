@@ -101,9 +101,13 @@ SELF_CHECK_SYSTEM = (
     '- "unsupported_claims": array of strings. Each is a concrete statement in the reply that is '
     "NOT in the message and is presented as a fact or a decision: prices, hours, deadlines, "
     "policies, statements that something is possible or impossible, guarantees, technical causes. "
-    "These are NOT unsupported claims: polite phrases; promises to check, escalate or get back; "
-    "offering the very thing the customer asked for (a demo, a quote, a callback); generic "
-    "troubleshooting steps.\n"
+    "These are NEVER unsupported claims: polite phrases; promises to check, escalate, review or "
+    "get back; offering something to the customer (a demo, a quote, a callback, an escalation "
+    "of the case); instructions or steps the customer may try (clearing a cache, reinstalling, "
+    "splitting a file); thanks and apologies. Only list a statement if the reply asserts it as a "
+    "fact about the company, the product or the situation and the message gives no basis for it. "
+    "Example of a real unsupported claim: reply says \"switching plans mid-month is possible\" "
+    "while the message only asks whether it is possible.\n"
     '- "missed_details": array of strings. Each is an explicit question, request or demand of the '
     "customer that the reply does not address in any way. A reply addresses a request if it "
     "acknowledges it, even when it only promises to check or to get back. NOT restating details "

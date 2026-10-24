@@ -12,6 +12,7 @@ from llm_pipeline.prompts import (
     RESPOND_SYSTEM,
     build_user_prompt,
 )
+from llm_pipeline.reliability import llm_json
 from llm_pipeline.routing import get_route
 from llm_pipeline.schemas import (
     Analysis,
@@ -70,14 +71,7 @@ def analyze_json(text: str, client: ChatClient) -> Analysis:
 def classify(text: str, client: ChatClient) -> Classification:
     if not text or not text.strip():
         raise ValueError("Input text is empty")
-    completion = client.complete(CLASSIFY_SYSTEM, build_user_prompt(text), json_mode=True, max_tokens=150)
-    try:
-        data = extract_json(completion.text)
-        result = Classification.model_validate(data)
-    except ValueError as exc:
-        if isinstance(exc, ValidationError):
-            raise OutputValidationError(describe_errors(exc), raw=completion.text) from exc
-        raise OutputValidationError([str(exc)], raw=completion.text) from exc
+    result, _ = llm_json(client, CLASSIFY_SYSTEM, build_user_prompt(text), Classification, max_tokens=150)
     logger.info("classify: category=%s intent=%r sentiment=%s", result.category, result.intent, result.sentiment)
     return result
 

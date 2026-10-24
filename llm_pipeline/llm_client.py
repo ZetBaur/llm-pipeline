@@ -51,6 +51,7 @@ class OpenAIChatClient:
         api_key: str | None = None,
         max_retries: int = 3,
         timeout: float = 30.0,
+        base_url: str | None = None,
         backoff: float = 1.0,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
@@ -65,7 +66,9 @@ class OpenAIChatClient:
         self.calls = 0
         self.prompt_tokens = 0
         self.completion_tokens = 0
-        self._client = openai.OpenAI(api_key=key, timeout=timeout, max_retries=0)
+        self._client = openai.OpenAI(
+            api_key=key, timeout=timeout, max_retries=0, base_url=base_url
+        )
 
     def complete(
         self,

@@ -34,7 +34,7 @@ def test_classify_parses_result(fake_client) -> None:
     "response", ["", "nonsense", cls("spam"), json.dumps({"category": "sales"})]
 )
 def test_classify_rejects_bad_output(fake_client, response: str) -> None:
-    fake_client.responses = [response]
+    fake_client.responses = [response, response]
 
     with pytest.raises(OutputValidationError):
         classify("hello", fake_client)
